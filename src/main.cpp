@@ -9,15 +9,14 @@ void setup()
   pinMode(ONBOARD_LED, OUTPUT);
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, TOTAL_LEDS);
   random16_add_entropy(analogRead(A0));
-  steadyColor(CRGB::Purple, 40); // sanity validation
+  steadyColor(CRGB::Purple, 100); // sanity validation
 }
 
 void loop()
 {
   Serial.println("Loop");
-  steadyColor(CRGB::Green, 40); // sanity validation
   digitalWrite(ONBOARD_LED, HIGH);
-  slowColorDrift(18, random8());
+  slowColorDrift(29, random(100, 1001));
   digitalWrite(ONBOARD_LED, LOW);
   delay(2000);
 }
