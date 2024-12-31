@@ -19,8 +19,8 @@ void slowColorDrift(int duration_seconds, int smoothness)
 
   // Random initial values
   uint8_t current_hue = random8();
-  uint8_t saturation = random8(170, 210);
-  uint8_t brightness = random8(130, 170);
+  uint8_t saturation = random8(130, 256);
+  uint8_t brightness = random8(100, 240);
   Serial.printf("Initial HSB: %d, %d, %d\n", current_hue, saturation, brightness);
 
   const int min_delay = 7; // minimum delay to maintain LED refresh

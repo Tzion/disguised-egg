@@ -9,7 +9,7 @@ void setup()
   pinMode(ONBOARD_LED, OUTPUT);
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, TOTAL_LEDS);
   random16_add_entropy(analogRead(A0));
-  steadyColor(CRGB::Purple, 100); // sanity validation
+  steadyColor(CRGB::Purple, 200); // sanity validation
 }
 
 void loop()
