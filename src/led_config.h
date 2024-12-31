@@ -3,7 +3,7 @@
 
 #include <FastLED.h>
 
-#define LED_PIN 7
+#define LED_PIN 9
 #define ONBOARD_LED 15
 
 #define NUM_STRIPS 4
