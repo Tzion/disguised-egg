@@ -2,11 +2,11 @@
 #include "animations.h"
 #include "led_config.h"
 
-void steadyColor(CRGB color, int duration_seconds)
+void steadyColor(CRGB color, int duration_millis)
 {
   fill_solid(leds, TOTAL_LEDS, color);
   FastLED.show();
-  delay(duration_seconds * 1000);
+  delay(duration_millis);
 }
 
 /**
@@ -31,9 +31,9 @@ void slowColorDrift(int duration_seconds,
     float current_sat = random8();
     float current_bright = random8();
     
-    const float hue_step = 1.0f + (255 - hueSmooth) / 32.0f;
-    const float sat_step = 1.0f + (255 - satSmooth) / 32.0f;
-    const float bright_step = 1.0f + (255 - brightSmooth) / 32.0f;
+    const float hue_step = 1.0f + (255 - hueSmooth) / 1024.0f;
+    const float sat_step = 0.0f;
+    const float bright_step = 0.0f;
     
     while (millis() - start_time < total_duration) {
         // Add steps while keeping as float
