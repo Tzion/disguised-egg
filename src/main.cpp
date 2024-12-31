@@ -17,7 +17,7 @@ void loop()
   Serial.println("Loop");
   steadyColor(CRGB::Green, 40); // sanity validation
   digitalWrite(ONBOARD_LED, HIGH);
-  slowColorDrift(18, random8(), random8(), random8());
+  slowColorDrift(18, random8());
   digitalWrite(ONBOARD_LED, LOW);
   delay(2000);
 }
