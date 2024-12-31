@@ -9,6 +9,11 @@
 #define TOTAL_LEDS (NUM_STRIPS * LEDS_PER_STRIP)
 
 CRGB leds[TOTAL_LEDS];
+CRGBSet strip1(leds, LEDS_PER_STRIP);
+CRGBSet strip2(leds + LEDS_PER_STRIP, LEDS_PER_STRIP);
+CRGBSet strip3(leds + (2 * LEDS_PER_STRIP), LEDS_PER_STRIP);
+CRGBSet strip4(leds + (3 * LEDS_PER_STRIP), LEDS_PER_STRIP);
+
 
 void setup()
 {
@@ -22,8 +27,13 @@ void loop()
 {
   Serial.println("Loop");
   digitalWrite(LED_BUILTIN, HIGH);
-  steadyColor(leds, TOTAL_LEDS, CRGB::Red, 5);   // Red for 5 seconds
-  steadyColor(leds, TOTAL_LEDS, CRGB::Blue, 5);  // Blue for 5 seconds
-  steadyColor(leds, TOTAL_LEDS, CRGB::Green, 5); // Green for 5 seconds
+  strip1.fill_solid(CRGB::Yellow);
+  strip3.fill_solid(CRGB::Purple);
+  FastLED.show();
+  delay(4000);
+  // steadyColor(leds, TOTAL_LEDS, CRGB::Red, 5);   // Red for 5 seconds
+  // steadyColor(leds, TOTAL_LEDS, CRGB::Blue, 5);  // Blue for 5 seconds
+  // steadyColor(leds, TOTAL_LEDS, CRGB::Green, 5); // Green for 5 seconds
   digitalWrite(LED_BUILTIN, LOW);
+  delay(2000);
 }
