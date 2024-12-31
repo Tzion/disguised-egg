@@ -1,11 +1,10 @@
 #include <FastLED.h>
 #include "animations.h"
+#include "led_config.h"
 
-extern CRGB leds[]; // Declare the color array from main.cpp
-
-void steadyColor(CRGB* leds, int totalLeds, CRGB color, int duration_seconds)
+void steadyColor(CRGB color, int duration_seconds)
 {
-  fill_solid(leds, totalLeds, color);
+  fill_solid(leds, TOTAL_LEDS, color);
   FastLED.show();
   delay(duration_seconds * 1000);
 }

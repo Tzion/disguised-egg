@@ -5,6 +5,6 @@
 
 extern CRGB leds[]; // Declare the color array from main.cpp
 
-void steadyColor(CRGB* leds, int totalLeds, CRGB color, int duration_seconds);
+void steadyColor(CRGB color, int duration_seconds);
 
 #endif // ANIMATIONS_H
