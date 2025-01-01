@@ -42,8 +42,10 @@ void transitionToHSV(uint8_t targetHue, uint8_t targetSat, uint8_t targetBright,
 
 void slowColorDrift(int duration_seconds, int smoothness, int disorderChance)
 {
+  Serial.printf("SlowColorDrift duration_seconds: %d, smoothness: %d, disorderChance: %d\n", duration_seconds, smoothness, disorderChance);
   const unsigned long total_duration = duration_seconds * 1000UL;
   const unsigned long start_time = millis();
+  unsigned long last_print = 0;
 
   // Disorder tracking
   bool is_disordered = false;
@@ -62,6 +64,7 @@ void slowColorDrift(int duration_seconds, int smoothness, int disorderChance)
   uint8_t current_hue = random8();
   uint8_t saturation = random8(130, 255);
   uint8_t brightness = random8(100, 240);
+  Serial.printf("Initial HSB: %d, %d, %d\n", current_hue, saturation, brightness);
   transitionToHSV(current_hue, saturation, brightness, smoothness);
 
   const int delay_time = smoothness + 7;
@@ -94,6 +97,10 @@ void slowColorDrift(int duration_seconds, int smoothness, int disorderChance)
 
     // Update colors
     current_hue++; // Main hue progression
+    if (millis() - last_print >= 1000) {
+      Serial.printf("Current hue: %d\n", current_hue);
+      last_print = millis();
+    }
 
     // Update all strips
     for (int i = 0; i < NUM_STRIPS; i++)
