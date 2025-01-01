@@ -8,6 +8,7 @@ extern CRGB leds[]; // Declare the color array from main.cpp
 void steadyColor(CRGB color, int duration_millis);
 
 void slowColorDrift(int duration_seconds, 
-                   int hueSmooth);
+                   int hueSmooth,
+                   int disorderChance = 4);
 
 #endif // ANIMATIONS_H
