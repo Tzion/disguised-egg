@@ -17,4 +17,7 @@ extern CRGBSet stripRight;
 extern CRGBSet stripBack;
 extern CRGBSet *strips[NUM_STRIPS];
 
+extern CRGBPalette16 currentPalette;
+
+
 #endif

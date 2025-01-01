@@ -7,3 +7,6 @@ CRGBSet stripRight(leds + (2 * LEDS_PER_STRIP), LEDS_PER_STRIP);
 CRGBSet stripBack(leds + (3 * LEDS_PER_STRIP), LEDS_PER_STRIP);
 CRGBSet* strips[NUM_STRIPS] = {&stripLeft, &stripFront, &stripRight, &stripBack};
 
+CRGBPalette16 currentPalette = LavaColors_p;
+
+

@@ -12,7 +12,7 @@ void setup()
   steadyColor(CRGB::Purple, 200); // sanity validation
 }
 
-void loop()
+void loop_old()
 {
   Serial.println("Loop");
   digitalWrite(ONBOARD_LED, HIGH);
@@ -20,3 +20,40 @@ void loop()
   digitalWrite(ONBOARD_LED, LOW);
   delay(2000);
 }
+
+void Fire2012WithPalette(uint8_t *heat)
+{
+  for (int i = 0; i < TOTAL_LEDS; i++)
+  {
+    heat[i] = qsub8(heat[i], random8(0, 3));
+    int16_t tmpHeat = heat[i] + random8(0, 5);
+    heat[i] = qadd8(heat[i], tmpHeat > 255 ? 255 : tmpHeat);
+    leds[i] = ColorFromPalette(currentPalette, heat[i]);
+  }
+}
+
+void loop()
+  {
+    Serial.println("Rainbow");
+    static uint8_t startIndex = 0;
+    fill_rainbow(leds, TOTAL_LEDS, startIndex, 5);
+    FastLED.show();
+    startIndex++;
+    delay(10000);
+
+  Serial.println("Fire");
+    static uint8_t heat[TOTAL_LEDS];
+    Fire2012WithPalette(heat);
+    FastLED.show();
+    delay(10000);
+
+    Serial.println("Noise");
+    uint16_t time = millis() / 5;
+    for (int i = 0; i < TOTAL_LEDS; i++)
+    {
+      uint8_t noise = inoise8(i * 20, time);
+      leds[i] = ColorFromPalette(currentPalette, noise);
+    }
+    FastLED.show();
+    delay(10000);
+  }
