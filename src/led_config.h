@@ -13,8 +13,8 @@
   #pragma message "Using ESP32-C3 board configuration"
 #endif
 
-#define NUM_STRIPS 4
-#define LEDS_PER_STRIP 61
+#define NUM_STRIPS 1
+#define LEDS_PER_STRIP 6
 #define TOTAL_LEDS (NUM_STRIPS * LEDS_PER_STRIP)
 
 extern CRGB leds[TOTAL_LEDS];
