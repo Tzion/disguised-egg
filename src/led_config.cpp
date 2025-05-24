@@ -1,7 +1,8 @@
 #include "led_config.h";
 
 CRGB leds[TOTAL_LEDS];
-CRGBSet *strips[NUM_STRIPS];
+CRGBSet strip = CRGBSet(leds, LEDS_PER_STRIP);
+CRGBSet *strips[NUM_STRIPS] = {&strip};
 
 // Initialize strips array
 void initStrips()

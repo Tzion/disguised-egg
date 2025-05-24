@@ -15,9 +15,9 @@ void setup()
 void loop_old()
 {
   Serial.println("Loop");
-  digitalWrite(ONBOARD_LED, HIGH);
+  setOnboardLed(true);
   slowColorDrift(29, random(100, 1001));
-  digitalWrite(ONBOARD_LED, LOW);
+  setOnboardLed(false);
   delay(2000);
 }
 
