@@ -3,8 +3,15 @@
 
 #include <FastLED.h>
 
-#define LED_PIN 9
-#define ONBOARD_LED 15
+#ifdef ESP32S2
+  #define LED_PIN 9
+  #define ONBOARD_LED 15
+  #pragma message "Using ESP32-S2 board configuration"
+#elif defined(ESP32C3)
+  #define LED_PIN 3
+  #define ONBOARD_LED 8
+  #pragma message "Using ESP32-C3 board configuration"
+#endif
 
 #define NUM_STRIPS 4
 #define LEDS_PER_STRIP 61
@@ -18,3 +25,12 @@ extern CRGBSet stripBack;
 extern CRGBSet *strips[NUM_STRIPS];
 
 #endif
+
+
+inline void setOnboardLed(bool on){
+  #ifdef ESP32S2
+    digitalWrite(ONBOARD_LED, on);
+  #elif defined(ESP32C3)
+    digitalWrite(ONBOARD_LED, !on); // C3 onboard led is active low
+  #endif
+}
