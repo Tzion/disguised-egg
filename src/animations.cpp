@@ -123,4 +123,7 @@ void slowColorDrift(int duration_seconds, int smoothness, int disorderChance)
     FastLED.show();
     delay(delay_time);
   }
+  // cleanup
+  fill_solid(leds, TOTAL_LEDS, CRGB::Black);
+  FastLED.show();
 }
