@@ -2,22 +2,11 @@
 #include "animations.h"
 #include "led_config.h"
 
-// Safe delay function using millis() - never blocks or sleeps
-void safeDelay(unsigned long ms)
-{
-  unsigned long start = millis();
-  while (millis() - start < ms)
-  {
-    // Keep ESP32 active during delay
-    yield(); // Allow other tasks to run but prevent sleep
-  }
-}
-
 void steadyColor(CRGB color, int duration_millis)
 {
   fill_solid(leds, TOTAL_LEDS, color);
   FastLED.show();
-  safeDelay(duration_millis);
+  delay(duration_millis);
 }
 
 void transitionToHSV(uint8_t targetHue, uint8_t targetSat, uint8_t targetBright, int transition_millis)
@@ -43,7 +32,7 @@ void transitionToHSV(uint8_t targetHue, uint8_t targetSat, uint8_t targetBright,
     // Apply new color
     fill_solid(leds, TOTAL_LEDS, CHSV(currentHue, currentSat, currentBright));
     FastLED.show();
-    safeDelay(20);
+    delay(20);
   }
 
   // Ensure we end up exactly at target color
@@ -108,8 +97,7 @@ void slowColorDrift(int duration_seconds, int smoothness, int disorderChance)
 
     // Update colors
     current_hue++; // Main hue progression
-    if (millis() - last_print >= 1000)
-    {
+    if (millis() - last_print >= 1000) {
       Serial.printf("Current hue: %d\n", current_hue);
       last_print = millis();
     }
@@ -133,7 +121,7 @@ void slowColorDrift(int duration_seconds, int smoothness, int disorderChance)
     }
 
     FastLED.show();
-    safeDelay(delay_time);
+    delay(delay_time);
   }
   // cleanup
   fill_solid(leds, TOTAL_LEDS, CRGB::Black);

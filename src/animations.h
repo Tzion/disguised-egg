@@ -11,6 +11,4 @@ void slowColorDrift(int duration_seconds,
                    int hueSmooth,
                    int disorderChance = 4);
 
-void safeDelay(unsigned long ms);
-
 #endif // ANIMATIONS_H
