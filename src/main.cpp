@@ -7,6 +7,7 @@
 
 void preventSleepState()
 {
+  #ifdef ESP32C3
   // Disable all sleep wakeup sources to prevent the ESP32 from entering sleep mode
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
@@ -32,13 +33,14 @@ void preventSleepState()
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_ON);
   // Disable WiFi power saving (uncomment if you use WiFi)
   esp_wifi_set_ps(WIFI_PS_NONE);
+  #endif
 }
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Setup");
-  preventSleepState();
+  // preventSleepState();
   pinMode(ONBOARD_LED, OUTPUT);
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, TOTAL_LEDS);
   random16_add_entropy(analogRead(A0));
