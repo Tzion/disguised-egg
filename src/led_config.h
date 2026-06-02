@@ -5,10 +5,10 @@
 
 #ifdef ESP32S2
 #define LED_PIN 3
-#define ONBOARD_LED 15
+#define ONBOARD_LED 18
 #pragma message "Using ESP32-S2 board configuration"
 #elif defined(ESP32C3)
-#define LED_PIN 2
+#define LED_PIN 3
 #define ONBOARD_LED 8
 #pragma message "Using ESP32-C3 board configuration"
 #endif
