@@ -1,0 +1,13 @@
+Setup: Attiny85 + simple RGB led fully brighness, 83% on-period
+
+4.17 V - starting voltage 
+3.83V - after 9:37 hours
+3.73V - after 12:41
+3.67V - after 16:31
+3.65V - after 17:51
+3.62V - after 22:23
+3.59V - after 25:47
+3.51V - after 32:24
+3.49V - 34:00
+cut off: 3.16V - sometime before 44:00
+
