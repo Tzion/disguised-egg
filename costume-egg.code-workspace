@@ -1,0 +1,17 @@
+{
+    "folders": [
+        {
+            "name": "ESP32 (main)",
+            "path": "esp32"
+        },
+        {
+            "name": "ATtiny",
+            "path": "attiny"
+        },
+        {
+            "name": "Arduino tools (Nano)",
+            "path": "arduino-tools"
+        }
+    ],
+    "settings": {}
+}
