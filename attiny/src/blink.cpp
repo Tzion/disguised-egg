@@ -1,16 +1,34 @@
 #include <Arduino.h>
 
-const int RED_PIN = 3; // Arduino code pin 3 == ATtiny85 physical pin 2
-const int GREEN_PIN = 2;
-const int BLUE_PIN = 4;
+const int RED_PIN = 0;   // PB0, physical pin 5 (also MOSI — flickers during upload)
+const int GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers during upload)
+const int BLUE_PIN = 4;  // PB4, physical pin 3 — PWM only, no ISP conflict
 
-void setup() {
+int desiredRed;
+int curRed;
+int waitingPeriodRed;
+int stepWaitedRed;
+int directionRed;
+
+void setup()
+{
     pinMode(RED_PIN, OUTPUT);
     pinMode(BLUE_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
 }
 
-void loop() {
+uint8_t counter;
+
+void drift()
+{
+    counter = counter % 255;
+    analogWrite(BLUE_PIN, counter);
+    delay(10);
+    counter++;
+}
+
+void blink()
+{
     digitalWrite(RED_PIN, HIGH);
     digitalWrite(GREEN_PIN, HIGH);
     digitalWrite(BLUE_PIN, HIGH);
@@ -19,4 +37,28 @@ void loop() {
     digitalWrite(GREEN_PIN, LOW);
     digitalWrite(BLUE_PIN, LOW);
     delay(1000);
+}
+
+void redLoop()
+{
+    if (curRed == desiredRed)
+    {
+        desiredRed = random(256);
+        waitingPeriodRed = random(100, 15000);
+        stepWaitedRed = 0;
+        directionRed = random(2) ? -1 : 1;
+    }
+    delay(1);
+    stepWaitedRed++;
+    if (stepWaitedRed >= waitingPeriodRed)
+    {
+        desiredRed += directionRed;
+        analogWrite(RED_PIN, desiredRed);
+        curRed = desiredRed;
+    }
+}
+
+void loop()
+{
+    redLoop();
 }
