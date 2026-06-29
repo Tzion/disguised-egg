@@ -9,7 +9,7 @@
 // hardware PWM.
 //
 // Workflow: tune the algorithm here, watch the values evolve, then copy the
-// `redLoop()` body back into ../src/blink.cpp.
+// algorithm block back into ../src/blink.cpp.
 
 #include <chrono>
 #include <cstdint>
@@ -35,31 +35,34 @@ void delay(unsigned long ms) {
 
 // ─── Algorithm under test ─────────────────────────────────────────────────
 // Copy this block into ../src/blink.cpp when you've got it behaving the way
-// you want. Keep the signatures (uint8_t, no `Serial.print`, etc.) identical
-// so the copy-paste is one-step.
+// you want.
 
-const int RED_PIN = 0;
+struct Color {
+    uint8_t pin;
+    uint8_t current = 0;
+    uint8_t target = 0;
+    int8_t  direction = 1;
+    int     stepDelay = 1000;
+    int     stepWaited = 0;
+    Color(uint8_t p) : pin(p) {}
+};
 
-uint8_t desiredRed;
-uint8_t curRed;
-int waitingPeriodRed;
-int stepWaitedRed;
-int directionRed;
+Color red{0};
+Color green{1};
+Color blue{4};
 
-void redLoop() {
-    if (curRed == desiredRed)
-    {
-        desiredRed = random(256);
-        waitingPeriodRed = random(100, 1500);
-        stepWaitedRed = 0;
-        directionRed = random(2) ? -1 : 1;
+void colorRandomWalk(Color& c) {
+    if (c.current == c.target) {
+        c.target     = random(256);
+        c.stepDelay  = random(100, 1500);
+        c.stepWaited = 0;
+        c.direction  = random(2) ? -1 : 1;
     }
-    stepWaitedRed++;
-    if (stepWaitedRed >= waitingPeriodRed)
-    {
-        curRed += directionRed;
-        analogWrite(RED_PIN, curRed);
-        stepWaitedRed= 0;
+    c.stepWaited++;
+    if (c.stepWaited >= c.stepDelay) {
+        c.current += c.direction;
+        analogWrite(c.pin, c.current);
+        c.stepWaited = 0;
     }
 }
 // ─── end algorithm ────────────────────────────────────────────────────────
@@ -84,21 +87,30 @@ int main() {
                                        : (long)(SIM_HZ / PRINT_FREQ);
     constexpr long PERIOD_US = 1000000L / SIM_HZ;
 
-    std::cout << "  iter | curRed | desiredRed | stepDelay | waited\n";
-    std::cout << "-------+--------+--------+-----------+-------\n";
+    std::cout << "  iter |   R |   G |   B  |  tgt R/G/B  |  delay R/G/B\n";
+    std::cout << "-------+-----+-----+------+-------------+----------------\n";
 
     for (unsigned long iter = 0; ; iter++) {
-        redLoop();
+        colorRandomWalk(red);
+        colorRandomWalk(green);
+        colorRandomWalk(blue);
 
         if (iter % PRINT_EVERY_N == 0) {
             if (iter > 0) {
                 std::cout << "       ⋮ (" << (PRINT_EVERY_N - 1) << " cycles skipped)\n";
             }
             std::cout << std::setw(6) << iter
-                      << " | "  << std::setw(6) << (int)curRed
-                      << " | "  << std::setw(6) << (int)desiredRed
-                      << " | "  << std::setw(9) << (int)waitingPeriodRed
-                      << " | "  << std::setw(6) << (int)stepWaitedRed
+                      << " | "  << std::setw(3) << (int)red.current
+                      << " | "  << std::setw(3) << (int)green.current
+                      << " | "  << std::setw(3) << (int)blue.current
+                      << "  | "
+                      << std::setw(3) << (int)red.target   << "/"
+                      << std::setw(3) << (int)green.target << "/"
+                      << std::setw(3) << (int)blue.target
+                      << " | "
+                      << std::setw(4) << red.stepDelay   << "/"
+                      << std::setw(4) << green.stepDelay << "/"
+                      << std::setw(4) << blue.stepDelay
                       << "\n";
         }
         if (PERIOD_US > 0) {

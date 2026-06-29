@@ -1,8 +1,24 @@
 #include <Arduino.h>
 
-const int RED_PIN = 0;   // PB0, physical pin 5 (also MOSI — flickers during upload)
-const int GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers during upload)
-const int BLUE_PIN = 4;  // PB4, physical pin 3 — PWM only, no ISP conflict
+const uint8_t RED_PIN = 0;   // PB0, physical pin 5 (also MOSI — flickers during upload)
+const uint8_t GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers during upload)
+const uint8_t BLUE_PIN = 4;  // PB4, physical pin 3 — PWM only, no ISP conflict
+
+struct Color {
+    uint8_t pin;
+    uint8_t current = 0;
+    uint8_t target = 0;
+    int8_t  direction = 1;
+    int     stepDelay = 1000;
+    int     stepWaited = 0;
+    Color(uint8_t p) : pin(p) {}
+};
+
+Color red{RED_PIN};
+Color green{GREEN_PIN};
+Color blue{BLUE_PIN};
+
+uint8_t counter;
 
 void setup()
 {
@@ -11,12 +27,26 @@ void setup()
     pinMode(GREEN_PIN, OUTPUT);
 }
 
-uint8_t counter;
+void colorRandomWalk(Color& c)
+{
+    if (c.current == c.target) {
+        c.target     = random(256);
+        c.stepDelay  = random(1000, 30000);
+        c.stepWaited = 0;
+        c.direction  = random(2) ? -1 : 1;
+    }
+    c.stepWaited++;
+    if (c.stepWaited >= c.stepDelay) {
+        c.current += c.direction;
+        analogWrite(c.pin, c.current);
+        c.stepWaited = 0;
+    }
+}
 
-void drift()
+void drift(uint8_t pin)
 {
     counter = counter % 255;
-    analogWrite(BLUE_PIN, counter);
+    analogWrite(pin, counter);
     delay(10);
     counter++;
 }
@@ -33,29 +63,9 @@ void blink()
     delay(1000);
 }
 
-uint8_t desiredRed;
-uint8_t curRed;
-int waitingPeriodRed;
-int stepWaitedRed;
-int directionRed;
-
-void redLoop() {
-    if (curRed == desiredRed)
-    {
-        desiredRed = random(256);
-        waitingPeriodRed = random(1000, 30000);
-        stepWaitedRed = 0;
-        directionRed = random(2) ? -1 : 1;
-    }
-    stepWaitedRed++;
-    if (stepWaitedRed >= waitingPeriodRed)
-    {
-        curRed += directionRed;
-        analogWrite(RED_PIN, curRed);
-        stepWaitedRed= 0;
-    }
-}
 void loop()
 {
-    redLoop();
+    colorRandomWalk(red);
+    colorRandomWalk(green);
+    colorRandomWalk(blue);
 }
