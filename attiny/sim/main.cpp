@@ -37,6 +37,79 @@ void delay(unsigned long ms) {
 // Copy this block into ../src/blink.cpp when you've got it behaving the way
 // you want.
 
+// loop iterations between ±1 steps. NOT milliseconds.
+const int MIN_STEP_DELAY = 100;
+const int MAX_STEP_DELAY = 15000;
+
+// HSV random bounds. Lower = pastel/dim, higher = vivid/bright.
+const uint8_t MIN_SAT = 200;
+const uint8_t MIN_VAL = 180;
+
+struct Hue {
+    uint8_t current = 0;
+    uint8_t target = 0;
+    int8_t  direction = 1;
+    int     stepDelay = 1000;
+    int     stepWaited = 0;
+    uint8_t saturation = 255;
+    uint8_t value = 255;
+};
+
+Hue hue;
+
+// 8-bit HSV→RGB. h/s/v all 0–255. Standard integer algorithm.
+void hsvToRgb(uint8_t h, uint8_t s, uint8_t v,
+              uint8_t& r, uint8_t& g, uint8_t& b)
+{
+    uint8_t region    = h / 43;
+    uint8_t remainder = (h - region * 43) * 6;
+
+    uint8_t p = ((uint16_t)v * (255 - s)) >> 8;
+    uint8_t q = ((uint16_t)v * (255 - (((uint16_t)s * remainder) >> 8))) >> 8;
+    uint8_t t = ((uint16_t)v * (255 - (((uint16_t)s * (255 - remainder)) >> 8))) >> 8;
+
+    switch (region) {
+        case 0:  r = v; g = t; b = p; break;
+        case 1:  r = q; g = v; b = p; break;
+        case 2:  r = p; g = v; b = t; break;
+        case 3:  r = p; g = q; b = v; break;
+        case 4:  r = t; g = p; b = v; break;
+        default: r = v; g = p; b = q; break;
+    }
+}
+
+// Pin constants — only the sim references them through the analogWrite stub
+// so they're for documentation. On the ATtiny side these come from blink.cpp.
+const int RED_PIN = 0, GREEN_PIN = 1, BLUE_PIN = 4;
+
+void hueRandomWalk(Hue& h)
+{
+    if (h.current == h.target) {
+        h.target     = random(256);
+        h.stepDelay  = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
+        h.stepWaited = 0;
+        h.direction  = random(2) ? -1 : 1;
+        h.saturation = random(MIN_SAT, 256);
+        h.value      = random(MIN_VAL, 256);
+    }
+    h.stepWaited++;
+    if (h.stepWaited >= h.stepDelay) {
+        h.current += h.direction;
+        h.stepWaited = 0;
+
+        uint8_t r, g, b;
+        hsvToRgb(h.current, h.saturation, h.value, r, g, b);
+        analogWrite(RED_PIN, r);
+        analogWrite(GREEN_PIN, g);
+        analogWrite(BLUE_PIN, b);
+    }
+}
+
+// ─── Alternative algorithm: independent random walks in raw RGB space ─────
+// Not invoked from main() — keep here for comparison / quick switch-over.
+// To use: replace hueRandomWalk(hue) in main()'s loop with three rgbRandomWalk
+// calls on red/green/blue.
+
 struct Color {
     uint8_t pin;
     uint8_t current = 0;
@@ -47,14 +120,15 @@ struct Color {
     Color(uint8_t p) : pin(p) {}
 };
 
-Color red{0};
-Color green{1};
-Color blue{4};
+Color red{RED_PIN};
+Color green{GREEN_PIN};
+Color blue{BLUE_PIN};
 
-void colorRandomWalk(Color& c) {
+void rgbRandomWalk(Color& c)
+{
     if (c.current == c.target) {
         c.target     = random(256);
-        c.stepDelay  = random(100, 1500);
+        c.stepDelay  = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
         c.stepWaited = 0;
         c.direction  = random(2) ? -1 : 1;
     }
@@ -73,44 +147,36 @@ int main() {
     std::cout << std::unitbuf;   // flush every << so prints aren't lost on Ctrl-C
     std::srand(42);   // reproducible — change seed for variety
 
-    // Target loop frequency, in Hz. Tune to roughly what the real ATtiny loop()
-    // achieves — probably a few thousand Hz given the code's per-call cost.
-    constexpr int SIM_HZ = 100;
-
-    // How often to print, in Hz. 0.2 = 1 print every 5 seconds.
-    // Use 1.0 for once per second, 10.0 for fast scrolling, etc.
+    constexpr int    SIM_HZ     = 100;
     constexpr double PRINT_FREQ = 10;
 
-    // Derived: iterations between prints, and per-iteration sleep duration.
     constexpr long PRINT_EVERY_N = (long)(SIM_HZ / PRINT_FREQ) < 1
                                        ? 1
                                        : (long)(SIM_HZ / PRINT_FREQ);
     constexpr long PERIOD_US = 1000000L / SIM_HZ;
 
-    std::cout << "  iter |   R |   G |   B  |  tgt R/G/B  |  delay R/G/B\n";
-    std::cout << "-------+-----+-----+------+-------------+----------------\n";
+    std::cout << "  iter |   H |   S |   V |   R |   G |   B  |  tgt | delay\n";
+    std::cout << "-------+-----+-----+-----+-----+-----+------+------+-------\n";
 
     for (unsigned long iter = 0; ; iter++) {
-        colorRandomWalk(red);
-        colorRandomWalk(green);
-        colorRandomWalk(blue);
+        hueRandomWalk(hue);
 
         if (iter % PRINT_EVERY_N == 0) {
             if (iter > 0) {
                 std::cout << "       ⋮ (" << (PRINT_EVERY_N - 1) << " cycles skipped)\n";
             }
+            // Compute the RGB the algorithm would have written, for display.
+            uint8_t r, g, b;
+            hsvToRgb(hue.current, hue.saturation, hue.value, r, g, b);
             std::cout << std::setw(6) << iter
-                      << " | "  << std::setw(3) << (int)red.current
-                      << " | "  << std::setw(3) << (int)green.current
-                      << " | "  << std::setw(3) << (int)blue.current
-                      << "  | "
-                      << std::setw(3) << (int)red.target   << "/"
-                      << std::setw(3) << (int)green.target << "/"
-                      << std::setw(3) << (int)blue.target
-                      << " | "
-                      << std::setw(4) << red.stepDelay   << "/"
-                      << std::setw(4) << green.stepDelay << "/"
-                      << std::setw(4) << blue.stepDelay
+                      << " | "  << std::setw(3) << (int)hue.current
+                      << " | "  << std::setw(3) << (int)hue.saturation
+                      << " | "  << std::setw(3) << (int)hue.value
+                      << " | "  << std::setw(3) << (int)r
+                      << " | "  << std::setw(3) << (int)g
+                      << " | "  << std::setw(3) << (int)b
+                      << "  | " << std::setw(4) << (int)hue.target
+                      << " | " << std::setw(5) << hue.stepDelay
                       << "\n";
         }
         if (PERIOD_US > 0) {
