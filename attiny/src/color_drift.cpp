@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "rtc.h"
 
 const uint8_t RED_PIN = 0;   // PB0, physical pin 5 (also MOSI — flickers during upload)
 const uint8_t GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers during upload)
@@ -69,6 +70,21 @@ void setup()
     pinMode(RED_PIN, OUTPUT);
     pinMode(BLUE_PIN, OUTPUT);
     pinMode(GREEN_PIN, OUTPUT);
+    rtcInit();
+    delay(500); // bus settle
+    Time t = readRtc();
+    for (uint8_t i = 0; i < (t.s % 10); i++)
+    {
+        digitalWrite(RED_PIN, HIGH);
+        delay(150);
+        digitalWrite(RED_PIN, LOW);
+        delay(150);
+        digitalWrite(GREEN_PIN, HIGH);
+        delay(150);
+        digitalWrite(GREEN_PIN, LOW);
+        delay(150);
+    }
+    delay(500);
 }
 
 // 8-bit HSV→RGB. h/s/v all 0–255. Standard integer algorithm.
