@@ -38,8 +38,8 @@ void delay(unsigned long ms) {
 // you want.
 
 // loop iterations between ±1 steps. NOT milliseconds.
-const int MIN_STEP_DELAY = 100;
-const int MAX_STEP_DELAY = 15000;
+const long MIN_STEP_DELAY = 100;
+const long MAX_STEP_DELAY = 15000;
 
 // HSV outer bounds. Each WalkBounds picks a sub-range inside these.
 const uint8_t MIN_SAT = 200;
@@ -49,18 +49,32 @@ const uint8_t MIN_VAL = 180;
 const int MIN_WALKS_PER_BOUNDS = 3;
 const int MAX_WALKS_PER_BOUNDS = 10;
 
-// Burst gesture: short, dramatic flashing.
-const int     BURST_STEPS    = 30;
-const int     BURST_VIVID_MS = 40;
-const int     BURST_BLACK_MS = 20;
-const uint8_t BURST_MIN_SAT  = 200;
+// Burst gesture: short, dramatic flashing. Each call randomises within
+// these bounds. Worst case = MAX_STEPS × (MAX_VIVID + MAX_BLACK) ≈ 3.15s.
+const int     MIN_BURST_STEPS    = 15;
+const int     MAX_BURST_STEPS    = 35;
+const int     MIN_BURST_VIVID_MS = 20;
+const int     MAX_BURST_VIVID_MS = 60;
+const int     MIN_BURST_BLACK_MS = 10;
+const int     MAX_BURST_BLACK_MS = 30;
+const uint8_t BURST_MIN_SAT      = 200;
+
+// Heartbeat gesture: smooth red-pink lub-dub with never-black baseline.
+const int     MIN_HEARTBEAT_BPM     = 50;
+const int     MAX_HEARTBEAT_BPM     = 90;
+const int     MIN_HEARTBEAT_MS      = 5000;
+const int     MAX_HEARTBEAT_MS      = 30000;
+const uint8_t HEARTBEAT_HUE_MIN     = 220;
+const uint8_t HEARTBEAT_SAT_MIN     = 150;
+const uint8_t HEARTBEAT_SAT_MAX     = 240;
+const uint8_t HEARTBEAT_BASELINE_V  = 40;
 
 struct Hue {
     uint8_t current = 0;
     uint8_t target = 0;
     int8_t  direction = 1;
-    int     stepDelay = 1000;
-    int     stepWaited = 0;
+    long    stepDelay = 1000;
+    long    stepWaited = 0;
     uint8_t saturation = 255;
     uint8_t value = 255;
 };
@@ -69,8 +83,8 @@ Hue hue;
 
 struct WalkBounds {
     int     walksLeft = 0;
-    int     minDelay = MIN_STEP_DELAY;
-    int     maxDelay = MAX_STEP_DELAY;
+    long    minDelay = MIN_STEP_DELAY;
+    long    maxDelay = MAX_STEP_DELAY;
     uint8_t minSat   = MIN_SAT;
     uint8_t maxSat   = 255;
     uint8_t minVal   = MIN_VAL;
@@ -108,8 +122,8 @@ void pickNewWalkBounds()
 {
     bounds.walksLeft = random(MIN_WALKS_PER_BOUNDS, MAX_WALKS_PER_BOUNDS);
 
-    int delaySample1 = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
-    int delaySample2 = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
+    long delaySample1 = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
+    long delaySample2 = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
     bounds.minDelay = (delaySample1 < delaySample2) ? delaySample1 : delaySample2;
     bounds.maxDelay = (delaySample1 < delaySample2) ? delaySample2 : delaySample1;
 
@@ -126,35 +140,42 @@ void pickNewWalkBounds()
 
 void hueRandomWalk(Hue& hue)
 {
-    if (hue.current == hue.target) {
-        if (bounds.walksLeft <= 0) pickNewWalkBounds();
-        bounds.walksLeft--;
-
+    while (bounds.walksLeft > 0) {
         hue.target     = random(256);
         hue.stepDelay  = random(bounds.minDelay, bounds.maxDelay);
         hue.stepWaited = 0;
         hue.direction  = random(2) ? -1 : 1;
         hue.saturation = random(bounds.minSat, bounds.maxSat);
         hue.value      = random(bounds.minVal, bounds.maxVal);
-    }
-    hue.stepWaited++;
-    if (hue.stepWaited >= hue.stepDelay) {
-        hue.current += hue.direction;
-        hue.stepWaited = 0;
 
-        uint8_t r, g, b;
-        hsvToRgb(hue.current, hue.saturation, hue.value, r, g, b);
-        analogWrite(RED_PIN, r);
-        analogWrite(GREEN_PIN, g);
-        analogWrite(BLUE_PIN, b);
+        while (hue.current != hue.target) {
+            hue.stepWaited++;
+            if (hue.stepWaited >= hue.stepDelay) {
+                hue.current += hue.direction;
+                hue.stepWaited = 0;
+
+                uint8_t r, g, b;
+                hsvToRgb(hue.current, hue.saturation, hue.value, r, g, b);
+                analogWrite(RED_PIN, r);
+                analogWrite(GREEN_PIN, g);
+                analogWrite(BLUE_PIN, b);
+            }
+        }
+
+        bounds.walksLeft--;
     }
+    pickNewWalkBounds();
 }
 
 // One-shot dramatic gesture: rapid, non-smooth, vivid colour flashes with
 // black gaps between. Blocking (uses delay()). ~1.8s total at default values.
 void burst()
 {
-    for (int i = 0; i < BURST_STEPS; i++) {
+    int steps   = random(MIN_BURST_STEPS,    MAX_BURST_STEPS);
+    int vividMs = random(MIN_BURST_VIVID_MS, MAX_BURST_VIVID_MS);
+    int blackMs = random(MIN_BURST_BLACK_MS, MAX_BURST_BLACK_MS);
+
+    for (int i = 0; i < steps; i++) {
         uint8_t h = random(256);
         uint8_t s = random(BURST_MIN_SAT, 256);
         uint8_t r, g, b;
@@ -162,12 +183,71 @@ void burst()
         analogWrite(RED_PIN, r);
         analogWrite(GREEN_PIN, g);
         analogWrite(BLUE_PIN, b);
-        delay(BURST_VIVID_MS);
+        delay(vividMs);
 
         analogWrite(RED_PIN, 0);
         analogWrite(GREEN_PIN, 0);
         analogWrite(BLUE_PIN, 0);
-        delay(BURST_BLACK_MS);
+        delay(blackMs);
+    }
+}
+
+static void fadeV(uint8_t hue, uint8_t sat, uint8_t fromV, uint8_t toV, int durationMs)
+{
+    const int steps = 20;
+    int stepMs = durationMs / steps;
+    if (stepMs < 1) stepMs = 1;
+
+    uint8_t r, g, b;
+    for (int i = 0; i <= steps; i++) {
+        int v = (int)fromV + ((int)toV - (int)fromV) * i / steps;
+        hsvToRgb(hue, sat, (uint8_t)v, r, g, b);
+        analogWrite(RED_PIN, r);
+        analogWrite(GREEN_PIN, g);
+        analogWrite(BLUE_PIN, b);
+        delay(stepMs);
+    }
+}
+
+void heartbeat()
+{
+    const int     RISE_MS  = 80;
+    const int     FALL_MS  = 120;
+    const int     GAP_MS   = 70;
+    const uint8_t LUB_PEAK = 255;
+    const uint8_t DUB_PEAK = 180;
+    const int     FIXED_MS = (RISE_MS + FALL_MS) * 2 + GAP_MS;
+
+    int bpm     = random(MIN_HEARTBEAT_BPM, MAX_HEARTBEAT_BPM);
+    int totalMs = random(MIN_HEARTBEAT_MS,  MAX_HEARTBEAT_MS);
+    uint8_t hue = random(HEARTBEAT_HUE_MIN, 256);
+    uint8_t sat = random(HEARTBEAT_SAT_MIN, HEARTBEAT_SAT_MAX);
+
+    int beatPeriodMs = 60000 / bpm;
+    int restMs       = beatPeriodMs - FIXED_MS;
+    int numBeats     = totalMs / beatPeriodMs;
+    if (numBeats < 1) numBeats = 1;
+
+    std::cout << "   ─── heartbeat: " << numBeats << " beats @ " << bpm
+              << " bpm, hue=" << (int)hue << " sat=" << (int)sat
+              << ", ~" << (numBeats * beatPeriodMs / 1000) << "s\n";
+
+    uint8_t r, g, b;
+    hsvToRgb(hue, sat, HEARTBEAT_BASELINE_V, r, g, b);
+    analogWrite(RED_PIN, r);
+    analogWrite(GREEN_PIN, g);
+    analogWrite(BLUE_PIN, b);
+
+    for (int i = 0; i < numBeats; i++) {
+        fadeV(hue, sat, HEARTBEAT_BASELINE_V, LUB_PEAK, RISE_MS);
+        fadeV(hue, sat, LUB_PEAK, HEARTBEAT_BASELINE_V, FALL_MS);
+
+        delay(GAP_MS);
+
+        fadeV(hue, sat, HEARTBEAT_BASELINE_V, DUB_PEAK, RISE_MS);
+        fadeV(hue, sat, DUB_PEAK, HEARTBEAT_BASELINE_V, FALL_MS);
+
+        if (restMs > 0) delay(restMs);
     }
 }
 
@@ -181,8 +261,8 @@ struct Color {
     uint8_t current = 0;
     uint8_t target = 0;
     int8_t  direction = 1;
-    int     stepDelay = 1000;
-    int     stepWaited = 0;
+    long    stepDelay = 1000;
+    long    stepWaited = 0;
     Color(uint8_t p) : pin(p) {}
 };
 
@@ -227,6 +307,8 @@ int main() {
     int prevWalksLeft = -1;
     for (unsigned long iter = 0; ; iter++) {
         hueRandomWalk(hue);
+        if (random(100) < 2)  burst();
+        if (random(100) < 50) heartbeat();
 
         if (bounds.walksLeft > prevWalksLeft) {
             std::cout << "   ─── new WalkBounds: walks=" << (bounds.walksLeft + 1)
