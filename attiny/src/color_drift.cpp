@@ -65,6 +65,14 @@ WalkBounds bounds;
 
 uint8_t counter;
 
+// Quiet window: last 10 min of every 20-min slot
+// During this window all gestures are suppressed and the LED is held dark.
+static bool inQuietWindow()
+{
+    Time t = readRtc();
+    return (t.m % 20) >= 10;
+}
+
 void setup()
 {
     pinMode(RED_PIN, OUTPUT);
@@ -155,6 +163,9 @@ void hueRandomWalk(Hue &hue)
                 analogWrite(RED_PIN, r);
                 analogWrite(GREEN_PIN, g);
                 analogWrite(BLUE_PIN, b);
+
+                // Abort session if we just entered the quiet window.
+                if (inQuietWindow()) return;
             }
         }
 
@@ -309,7 +320,15 @@ void blink()
 
 void loop()
 {
+    if (inQuietWindow()) {
+        analogWrite(RED_PIN, 0);
+        analogWrite(GREEN_PIN, 0);
+        analogWrite(BLUE_PIN, 0);
+        delay(10000);   // recheck every 10 s
+        return;
+    }
+
     hueRandomWalk(hue);
-    if (random(100) < 2)  burst();
+    if (random(100) < 2) burst();
     if (random(100) < 2) heartbeat();
 }
