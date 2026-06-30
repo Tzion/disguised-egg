@@ -5,16 +5,16 @@ const uint8_t GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers duri
 const uint8_t BLUE_PIN = 4;  // PB4, physical pin 3 — PWM only, no ISP conflict
 
 // loop() iterations between ±1 steps. NOT milliseconds.
-const int MIN_STEP_DELAY = 100;
-const int MAX_STEP_DELAY = 30000;
+const int MIN_STEP_DELAY = 10000;
+const int MAX_STEP_DELAY = 70000;
 
 // HSV outer bounds. Each WalkBounds picks a sub-range inside these.
 const uint8_t MIN_SAT = 180;   // below this colors lose identity (look gray)
 const uint8_t MIN_VAL = 199; 
 
 // How many walks reuse the same WalkBounds before a new one is sampled.
-const int MIN_WALKS_PER_BOUNDS = 5;
-const int MAX_WALKS_PER_BOUNDS = 20;
+const int MIN_WALKS_PER_BOUNDS = 3;
+const int MAX_WALKS_PER_BOUNDS = 24;
 
 // Burst gesture: short, dramatic flashing of vivid colors.
 const int     BURST_STEPS    = 30;
@@ -98,31 +98,36 @@ void pickNewWalkBounds()
     bounds.maxVal = (valSample1 < valSample2) ? valSample2 : valSample1;
 }
 
-void hueRandomWalk(Hue& hue)
+void hueRandomWalk(Hue &hue)
 {
-    // walk ended, pick a new target / direction / phase params (within current bounds)
-    if (hue.current == hue.target) {
-        if (bounds.walksLeft <= 0) pickNewWalkBounds();
-        bounds.walksLeft--;
+    while (bounds.walksLeft > 0)
+    {
+        // walk ended, pick a new target / direction / phase params (within current bounds)
+        if (hue.current == hue.target)
+        {
+            bounds.walksLeft--;
 
-        hue.target     = random(256);
-        hue.stepDelay  = random(bounds.minDelay, bounds.maxDelay);
-        hue.stepWaited = 0;
-        hue.direction  = random(2) ? -1 : 1;
-        hue.saturation = random(bounds.minSat, bounds.maxSat);
-        hue.value      = random(bounds.minVal, bounds.maxVal);
-    }
-    hue.stepWaited++;
-    if (hue.stepWaited >= hue.stepDelay) {
-        hue.current += hue.direction;     // uint8_t wraps around the colour wheel
-        hue.stepWaited = 0;
+            hue.target = random(256);
+            hue.stepDelay = random(bounds.minDelay, bounds.maxDelay);
+            hue.stepWaited = 0;
+            hue.direction = random(2) ? -1 : 1;
+            hue.saturation = random(bounds.minSat, bounds.maxSat);
+            hue.value = random(bounds.minVal, bounds.maxVal);
+        }
+        hue.stepWaited++;
+        if (hue.stepWaited >= hue.stepDelay)
+        {
+            hue.current += hue.direction; // uint8_t wraps around the colour wheel
+            hue.stepWaited = 0;
 
-        uint8_t r, g, b;
-        hsvToRgb(hue.current, hue.saturation, hue.value, r, g, b);
-        analogWrite(RED_PIN, r);
-        analogWrite(GREEN_PIN, g);
-        analogWrite(BLUE_PIN, b);
+            uint8_t r, g, b;
+            hsvToRgb(hue.current, hue.saturation, hue.value, r, g, b);
+            analogWrite(RED_PIN, r);
+            analogWrite(GREEN_PIN, g);
+            analogWrite(BLUE_PIN, b);
+        }
     }
+    pickNewWalkBounds();
 }
 
 // One-shot dramatic gesture: rapid, non-smooth, vivid colour flashes with
@@ -206,4 +211,5 @@ void blink()
 void loop()
 {
     hueRandomWalk(hue);
+    burst();
 }
