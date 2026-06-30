@@ -41,9 +41,19 @@ void delay(unsigned long ms) {
 const int MIN_STEP_DELAY = 100;
 const int MAX_STEP_DELAY = 15000;
 
-// HSV random bounds. Lower = pastel/dim, higher = vivid/bright.
+// HSV outer bounds. Each WalkBounds picks a sub-range inside these.
 const uint8_t MIN_SAT = 200;
 const uint8_t MIN_VAL = 180;
+
+// How many walks reuse the same WalkBounds before a new one is sampled.
+const int MIN_WALKS_PER_BOUNDS = 3;
+const int MAX_WALKS_PER_BOUNDS = 10;
+
+// Burst gesture: short, dramatic flashing.
+const int     BURST_STEPS    = 30;
+const int     BURST_VIVID_MS = 40;
+const int     BURST_BLACK_MS = 20;
+const uint8_t BURST_MIN_SAT  = 200;
 
 struct Hue {
     uint8_t current = 0;
@@ -56,6 +66,18 @@ struct Hue {
 };
 
 Hue hue;
+
+struct WalkBounds {
+    int     walksLeft = 0;
+    int     minDelay = MIN_STEP_DELAY;
+    int     maxDelay = MAX_STEP_DELAY;
+    uint8_t minSat   = MIN_SAT;
+    uint8_t maxSat   = 255;
+    uint8_t minVal   = MIN_VAL;
+    uint8_t maxVal   = 255;
+};
+
+WalkBounds bounds;
 
 // 8-bit HSV→RGB. h/s/v all 0–255. Standard integer algorithm.
 void hsvToRgb(uint8_t h, uint8_t s, uint8_t v,
@@ -79,29 +101,73 @@ void hsvToRgb(uint8_t h, uint8_t s, uint8_t v,
 }
 
 // Pin constants — only the sim references them through the analogWrite stub
-// so they're for documentation. On the ATtiny side these come from blink.cpp.
+// so they're for documentation. On the ATtiny side these come from color_drift.cpp.
 const int RED_PIN = 0, GREEN_PIN = 1, BLUE_PIN = 4;
 
-void hueRandomWalk(Hue& h)
+void pickNewWalkBounds()
 {
-    if (h.current == h.target) {
-        h.target     = random(256);
-        h.stepDelay  = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
-        h.stepWaited = 0;
-        h.direction  = random(2) ? -1 : 1;
-        h.saturation = random(MIN_SAT, 256);
-        h.value      = random(MIN_VAL, 256);
+    bounds.walksLeft = random(MIN_WALKS_PER_BOUNDS, MAX_WALKS_PER_BOUNDS);
+
+    int delaySample1 = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
+    int delaySample2 = random(MIN_STEP_DELAY, MAX_STEP_DELAY);
+    bounds.minDelay = (delaySample1 < delaySample2) ? delaySample1 : delaySample2;
+    bounds.maxDelay = (delaySample1 < delaySample2) ? delaySample2 : delaySample1;
+
+    int satSample1 = random(MIN_SAT, 256);
+    int satSample2 = random(MIN_SAT, 256);
+    bounds.minSat = (satSample1 < satSample2) ? satSample1 : satSample2;
+    bounds.maxSat = (satSample1 < satSample2) ? satSample2 : satSample1;
+
+    int valSample1 = random(MIN_VAL, 256);
+    int valSample2 = random(MIN_VAL, 256);
+    bounds.minVal = (valSample1 < valSample2) ? valSample1 : valSample2;
+    bounds.maxVal = (valSample1 < valSample2) ? valSample2 : valSample1;
+}
+
+void hueRandomWalk(Hue& hue)
+{
+    if (hue.current == hue.target) {
+        if (bounds.walksLeft <= 0) pickNewWalkBounds();
+        bounds.walksLeft--;
+
+        hue.target     = random(256);
+        hue.stepDelay  = random(bounds.minDelay, bounds.maxDelay);
+        hue.stepWaited = 0;
+        hue.direction  = random(2) ? -1 : 1;
+        hue.saturation = random(bounds.minSat, bounds.maxSat);
+        hue.value      = random(bounds.minVal, bounds.maxVal);
     }
-    h.stepWaited++;
-    if (h.stepWaited >= h.stepDelay) {
-        h.current += h.direction;
-        h.stepWaited = 0;
+    hue.stepWaited++;
+    if (hue.stepWaited >= hue.stepDelay) {
+        hue.current += hue.direction;
+        hue.stepWaited = 0;
 
         uint8_t r, g, b;
-        hsvToRgb(h.current, h.saturation, h.value, r, g, b);
+        hsvToRgb(hue.current, hue.saturation, hue.value, r, g, b);
         analogWrite(RED_PIN, r);
         analogWrite(GREEN_PIN, g);
         analogWrite(BLUE_PIN, b);
+    }
+}
+
+// One-shot dramatic gesture: rapid, non-smooth, vivid colour flashes with
+// black gaps between. Blocking (uses delay()). ~1.8s total at default values.
+void burst()
+{
+    for (int i = 0; i < BURST_STEPS; i++) {
+        uint8_t h = random(256);
+        uint8_t s = random(BURST_MIN_SAT, 256);
+        uint8_t r, g, b;
+        hsvToRgb(h, s, 255, r, g, b);
+        analogWrite(RED_PIN, r);
+        analogWrite(GREEN_PIN, g);
+        analogWrite(BLUE_PIN, b);
+        delay(BURST_VIVID_MS);
+
+        analogWrite(RED_PIN, 0);
+        analogWrite(GREEN_PIN, 0);
+        analogWrite(BLUE_PIN, 0);
+        delay(BURST_BLACK_MS);
     }
 }
 
@@ -158,8 +224,17 @@ int main() {
     std::cout << "  iter |   H |   S |   V |   R |   G |   B  |  tgt | delay\n";
     std::cout << "-------+-----+-----+-----+-----+-----+------+------+-------\n";
 
+    int prevWalksLeft = -1;
     for (unsigned long iter = 0; ; iter++) {
         hueRandomWalk(hue);
+
+        if (bounds.walksLeft > prevWalksLeft) {
+            std::cout << "   ─── new WalkBounds: walks=" << (bounds.walksLeft + 1)
+                      << "  delay=[" << bounds.minDelay << "," << bounds.maxDelay << "]"
+                      << "  sat=[" << (int)bounds.minSat << "," << (int)bounds.maxSat << "]"
+                      << "  val=[" << (int)bounds.minVal << "," << (int)bounds.maxVal << "]\n";
+        }
+        prevWalksLeft = bounds.walksLeft;
 
         if (iter % PRINT_EVERY_N == 0) {
             if (iter > 0) {
