@@ -62,16 +62,35 @@ the DS3231's VCC, which disables its pull-ups). Reconnect after upload.
 
 ## Notes
 
-- **Don't ever touch `RSTDISBL` or `SPIEN` in `hfuse`** — clearing the wrong bit
-  bricks the chip for ISP forever. Current fuses (`lfuse=0xE2 hfuse=0xDF efuse=0xFF`)
-  are safe. See comment in [`platformio.ini`](platformio.ini).
 - Max ~20 mA per pin (safe), ~40 mA per port total. Drive LEDs through ≥220 Ω resistors.
 - Pins 0/1/2 work as normal I/O when not programming, but anything wired there will
   toggle briefly during code uploads (since avrdude drives the SPI lines).
 
 ## Build & upload
 
+**Prerequisite**: the Nano must already have ArduinoISP flashed onto it.
+See [`../arduino-tools/`](../arduino-tools/) (env: `isp_firmware`) for that.
+
+**Fresh ATtiny85** (once per chip):
+
 ```bash
-pio run -e attiny85 -t fuses    # one-time per chip
+pio run -e attiny85 -t fuses     # burn fuses: internal 8 MHz, CKDIV8 off, RESET+SPI enabled
+pio run -e attiny85 -t upload    # flash the sketch
+```
+
+**Subsequent uploads** (same chip):
+
+```bash
 pio run -e attiny85 -t upload
 ```
+
+### ⚠️ Fuses — don't touch `hfuse` bits 5 or 7
+
+The current fuse values are `lfuse=0xE2 hfuse=0xDF efuse=0xFF` (set in
+`platformio.ini` under `board_fuses.*`). Two `hfuse` bits are one-way traps:
+
+- **`RSTDISBL` (bit 7)** — clearing it turns RESET into a GPIO. ISP programming
+  needs RESET; you'd need a **high-voltage parallel programmer** to recover.
+- **`SPIEN` (bit 5)** — setting it disables SPI programming. Same recovery.
+
+Both are safe in `0xDF`. Never change hfuse without checking these bits stay put.

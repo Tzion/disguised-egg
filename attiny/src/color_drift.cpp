@@ -128,6 +128,12 @@ void setup()
     pinMode(GREEN_PIN, OUTPUT);
     rtcInit();
     delay(500); // bus settle
+
+    Time seed = readRtc();
+    if (seed.valid) {
+        randomSeed((long)seed.h * 3600 + (long)seed.m * 60 + seed.s);
+    }
+
     rtcSanityGesture();
 }
 
