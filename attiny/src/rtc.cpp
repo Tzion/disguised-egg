@@ -99,6 +99,19 @@ void rtcInit() {
 Time readRtc() {
     Time t = {};   // zero-initialise; valid = false until we succeed
 
+    // OSF check: read status register 0x0F, bit 7. If set, the oscillator
+    // stopped at some point (coin cell died, power blip, fresh chip) and
+    // the time is unreliable — reject even if the read itself succeeds.
+    i2cStart();
+    if (!i2cWriteByte((DS3231_ADDR << 1) | 0)) { i2cStop(); return t; }
+    if (!i2cWriteByte(0x0F))                   { i2cStop(); return t; }
+    i2cStart();
+    if (!i2cWriteByte((DS3231_ADDR << 1) | 1)) { i2cStop(); return t; }
+    uint8_t status = i2cReadByte(false);   // NACK — single byte
+    i2cStop();
+    if (status & 0x80) return t;   // OSF set → valid stays false
+
+    // Now the time read.
     i2cStart();
     if (!i2cWriteByte((DS3231_ADDR << 1) | 0)) { i2cStop(); return t; }
     if (!i2cWriteByte(0x00))                   { i2cStop(); return t; }
