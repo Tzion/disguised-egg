@@ -114,6 +114,16 @@ Time readRtc() {
     t.year = 2000 + bcd2dec(i2cReadByte(false));  // NACK = last byte
 
     i2cStop();
+
+    // Sanity: real DS3231 data is always in these ranges. Anything outside
+    // means the ACK slipped through on garbage (e.g. SDA disconnected and
+    // floating low) — treat as invalid so we fail open.
+    if (t.s  > 59 || t.m  > 59 || t.h  > 23 ||
+        t.day < 1 || t.day > 31 ||
+        t.mon < 1 || t.mon > 12) {
+        return t;   // valid stays false
+    }
+
     t.valid = true;
     return t;
 }
