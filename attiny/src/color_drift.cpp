@@ -66,15 +66,22 @@ WalkBounds bounds;
 
 uint8_t counter;
 
-// Quiet window: last 10 min of every 20-min slot.
-// During this window all gestures are suppressed and the LED is held dark.
-// If the RTC didn't ACK we fail OPEN — keep gestures running rather than
-// freezing the egg dark on a bad bus.
+// Quiet window: daytime in Spain (07:10 – 21:00 Spain local = 08:10 – 22:00 RTC).
+// The egg is deployed in Spain (CEST, UTC+2); the RTC holds Israel time
+// (IDT, UTC+3) — 1 hour ahead of Spain. Spain sunrise 06:48, sunset 21:48;
+// we go dark 22 min after sunrise and come back on 48 min before sunset.
+//
+// If the RTC didn't ACK / returned garbage we fail OPEN — keep gestures
+// running rather than freezing the egg dark on a bad bus.
+static const int QUIET_START_MIN_OF_DAY = 8 * 60 + 10;   // 08:10 RTC (07:10 Spain)
+static const int QUIET_END_MIN_OF_DAY   = 22 * 60;        // 22:00 RTC (21:00 Spain)
+
 static bool inQuietWindow()
 {
     Time t = readRtc();
     if (!t.valid) return false;
-    return (t.m % 20) >= 10;
+    int minOfDay = t.h * 60 + t.m;
+    return minOfDay >= QUIET_START_MIN_OF_DAY && minOfDay < QUIET_END_MIN_OF_DAY;
 }
 
 void rtcSanityGesture()
