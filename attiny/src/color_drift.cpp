@@ -89,35 +89,21 @@ void rtcSanityGesture()
     Time time = readRtc();
     if (time.valid)
     {
-        for (uint8_t i = 0; i < (time.s % 10); i++)
+        for (uint8_t i = 0; i <= ((time.s % 10)*2); i++)
         {
             digitalWrite(RED_PIN, HIGH);
             delay(150);
             digitalWrite(RED_PIN, LOW);
             delay(150);
-            digitalWrite(GREEN_PIN, HIGH);
-            delay(150);
-            digitalWrite(GREEN_PIN, LOW);
-            delay(150);
         }
     }
     else {
+        for (uint8_t i = 0; i < 4; i++) {
             digitalWrite(RED_PIN, HIGH);
             delay(900);
             digitalWrite(RED_PIN, LOW);
             delay(500);
-            digitalWrite(RED_PIN, HIGH);
-            delay(900);
-            digitalWrite(RED_PIN, LOW);
-            delay(500);
-            digitalWrite(RED_PIN, HIGH);
-            delay(900);
-            digitalWrite(RED_PIN, LOW);
-            delay(500);
-            digitalWrite(RED_PIN, HIGH);
-            delay(900);
-            digitalWrite(RED_PIN, LOW);
-            delay(500);
+        }
     }
 }
 
