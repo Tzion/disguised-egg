@@ -97,12 +97,13 @@ void rtcInit() {
 }
 
 Time readRtc() {
-    Time t;
+    Time t = {};   // zero-initialise; valid = false until we succeed
+
     i2cStart();
-    i2cWriteByte((DS3231_ADDR << 1) | 0);   // 0xD0 — write
-    i2cWriteByte(0x00);                     // start from register 0 (seconds)
-    i2cStart();                             // repeated start
-    i2cWriteByte((DS3231_ADDR << 1) | 1);   // 0xD1 — read
+    if (!i2cWriteByte((DS3231_ADDR << 1) | 0)) { i2cStop(); return t; }
+    if (!i2cWriteByte(0x00))                   { i2cStop(); return t; }
+    i2cStart();
+    if (!i2cWriteByte((DS3231_ADDR << 1) | 1)) { i2cStop(); return t; }
 
     t.s    = bcd2dec(i2cReadByte(true)  & 0x7F);  // mask CH bit
     t.m    = bcd2dec(i2cReadByte(true));
@@ -113,5 +114,6 @@ Time readRtc() {
     t.year = 2000 + bcd2dec(i2cReadByte(false));  // NACK = last byte
 
     i2cStop();
+    t.valid = true;
     return t;
 }

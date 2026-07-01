@@ -2,13 +2,14 @@
 #include <Arduino.h>
 
 struct Time {
-    uint8_t  s;    // 0–59
-    uint8_t  m;    // 0–59
-    uint8_t  h;    // 0–23 (24h mode)
-    uint8_t  dow;  // 1–7 (raw from DS3231)
-    uint8_t  day;  // 1–31
-    uint8_t  mon;  // 1–12
-    uint16_t year; // 2000–2099
+    uint8_t  s;     // 0–59
+    uint8_t  m;     // 0–59
+    uint8_t  h;     // 0–23 (24h mode)
+    uint8_t  dow;   // 1–7 (raw from DS3231)
+    uint8_t  day;   // 1–31
+    uint8_t  mon;   // 1–12
+    uint16_t year;  // 2000–2099
+    bool     valid; // false if the RTC didn't ACK — fields are undefined then
 };
 
 // Configure the I2C pins. Call once at startup.

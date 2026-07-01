@@ -36,6 +36,30 @@ Numbers in **parentheses** are Arduino code-pin numbers (what you pass to
 
 PWM-capable pins (work with `analogWrite`): **0, 1, 4**.
 
+## Wiring — DS3231 RTC (software I²C)
+
+We can't use hardware I²C (USI) because it puts SDA on PB0, which is the red LED.
+Bit-banged on PB2/PB3 keeps the LED pins free. See `src/rtc.cpp`.
+
+| ATtiny pin | DS3231 pin | |
+|---|---|---|
+| PB3 — physical pin 2 | SDA | I²C data |
+| PB2 — physical pin 7 | SCL | I²C clock |
+| VCC | VCC | 3.3 V or 5 V |
+| GND | GND | |
+
+DS3231 mini boards have built-in 4.7 kΩ pull-ups on SDA/SCL — no external
+resistors needed. Coin cell keeps time when the ATtiny is unpowered.
+
+### ⚠️ SCL conflicts with ISP SCK during upload
+
+**PB2 is both** the I²C `SCL` line AND the ISP programming `SCK` line. The
+DS3231's 4.7 kΩ pull-up on SCL loads the SCK signal during ISP, slows the
+edges, and causes intermittent `invalid device signature` errors.
+
+**Before every ATtiny upload, disconnect the DS3231's SCL wire** (or just kill
+the DS3231's VCC, which disables its pull-ups). Reconnect after upload.
+
 ## Notes
 
 - **Don't ever touch `RSTDISBL` or `SPIEN` in `hfuse`** — clearing the wrong bit

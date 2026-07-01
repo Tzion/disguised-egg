@@ -5,6 +5,7 @@ const uint8_t RED_PIN = 0;   // PB0, physical pin 5 (also MOSI — flickers duri
 const uint8_t GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers during upload)
 const uint8_t BLUE_PIN = 4;  // PB4, physical pin 3 — PWM only, no ISP conflict
 
+
 // loop() iterations between ±1 steps. NOT milliseconds.
 // Need `long` because values above 32767 overflow AVR's 16-bit `int`.
 const long MIN_STEP_DELAY = 10000;
@@ -65,12 +66,52 @@ WalkBounds bounds;
 
 uint8_t counter;
 
-// Quiet window: last 10 min of every 20-min slot
+// Quiet window: last 10 min of every 20-min slot.
 // During this window all gestures are suppressed and the LED is held dark.
+// If the RTC didn't ACK we fail OPEN — keep gestures running rather than
+// freezing the egg dark on a bad bus.
 static bool inQuietWindow()
 {
     Time t = readRtc();
+    if (!t.valid) return false;
     return (t.m % 20) >= 10;
+}
+
+void rtcSanityGesture()
+{
+    Time time = readRtc();
+    if (time.valid)
+    {
+        for (uint8_t i = 0; i < (time.s % 10); i++)
+        {
+            digitalWrite(RED_PIN, HIGH);
+            delay(150);
+            digitalWrite(RED_PIN, LOW);
+            delay(150);
+            digitalWrite(GREEN_PIN, HIGH);
+            delay(150);
+            digitalWrite(GREEN_PIN, LOW);
+            delay(150);
+        }
+    }
+    else {
+            digitalWrite(RED_PIN, HIGH);
+            delay(900);
+            digitalWrite(RED_PIN, LOW);
+            delay(500);
+            digitalWrite(RED_PIN, HIGH);
+            delay(900);
+            digitalWrite(RED_PIN, LOW);
+            delay(500);
+            digitalWrite(RED_PIN, HIGH);
+            delay(900);
+            digitalWrite(RED_PIN, LOW);
+            delay(500);
+            digitalWrite(RED_PIN, HIGH);
+            delay(900);
+            digitalWrite(RED_PIN, LOW);
+            delay(500);
+    }
 }
 
 void setup()
@@ -80,20 +121,9 @@ void setup()
     pinMode(GREEN_PIN, OUTPUT);
     rtcInit();
     delay(500); // bus settle
-    Time t = readRtc();
-    for (uint8_t i = 0; i < (t.s % 10); i++)
-    {
-        digitalWrite(RED_PIN, HIGH);
-        delay(150);
-        digitalWrite(RED_PIN, LOW);
-        delay(150);
-        digitalWrite(GREEN_PIN, HIGH);
-        delay(150);
-        digitalWrite(GREEN_PIN, LOW);
-        delay(150);
-    }
-    delay(500);
+    rtcSanityGesture();
 }
+
 
 // 8-bit HSV→RGB. h/s/v all 0–255. Standard integer algorithm.
 void hsvToRgb(uint8_t h, uint8_t s, uint8_t v,
@@ -329,6 +359,6 @@ void loop()
     }
 
     hueRandomWalk(hue);
-    if (random(100) < 2) burst();
-    if (random(100) < 2) heartbeat();
+    if (random(100) < 13) burst();
+    if (random(100) < 21) heartbeat();
 }
