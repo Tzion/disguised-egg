@@ -1,9 +1,19 @@
 #include <Arduino.h>
 #include "rtc.h"
 
+#if defined(__AVR_ATtiny85__)
 const uint8_t RED_PIN = 0;   // PB0, physical pin 5 (also MOSI — flickers during upload)
 const uint8_t GREEN_PIN = 1; // PB1, physical pin 6 (also MISO — flickers during upload)
 const uint8_t BLUE_PIN = 4;  // PB4, physical pin 3 — PWM only, no ISP conflict
+#elif defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny84A__)
+// PlatformIO's tinyX4 variant uses this Arduino-code → AVR-pin mapping.
+// PWM (analogWrite) works on code pins 2, 3, 4, 5 only.
+const uint8_t RED_PIN = 2;   // PB2, physical pin 5 — OC0A PWM, no ISP conflict
+const uint8_t GREEN_PIN = 3; // PA7, physical pin 6 — OC0B PWM, no ISP conflict
+const uint8_t BLUE_PIN = 5;  // PA5, physical pin 8 — OC1B PWM, also MISO (flickers during upload)
+#else
+#error "Unsupported ATtiny — add pin definitions"
+#endif
 
 
 // loop() iterations between ±1 steps. NOT milliseconds.

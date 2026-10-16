@@ -11,6 +11,14 @@
 
 #include "rtc.h"
 
+#ifdef NO_RTC
+// LED-only builds (e.g. ATtiny84 env) skip the real RTC. These stubs return
+// "invalid" so all fail-open paths in color_drift.cpp work unchanged:
+// inQuietWindow returns false, rtcSanityGesture takes its invalid branch.
+void rtcInit() {}
+Time readRtc() { return Time{}; }   // zero-initialised; valid = false
+#else
+
 static const uint8_t SDA_PIN = 3;   // PB3
 static const uint8_t SCL_PIN = 2;   // PB2
 static const uint8_t DS3231_ADDR = 0x68;
@@ -140,3 +148,5 @@ Time readRtc() {
     t.valid = true;
     return t;
 }
+
+#endif   // NO_RTC
